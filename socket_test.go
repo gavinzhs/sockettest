@@ -4,8 +4,9 @@ import (
     "testing"
     "log"
     "net"
-    "time"
-    "bufio")
+    "bufio"
+    "fmt"
+    "bytes")
 
 func TestIp(t *testing.T) {
     ipsrc := "123.59.64.205"
@@ -18,7 +19,7 @@ func TestIp(t *testing.T) {
 }
 
 func TestTCPSocketClient(t *testing.T) {
-    q := make(chan bool)
+    //    q := make(chan bool)
     ip := "192.168.2.47:9090"
     addr, err := net.ResolveTCPAddr("tcp", ip)
     if err != nil {
@@ -30,34 +31,51 @@ func TestTCPSocketClient(t *testing.T) {
         log.Fatalf("resolve tcp addr err : %v", err)
     }
 
-    go func(conn *net.TCPConn) {
-        defer conn.Close()
-        reader := bufio.NewReader(conn)
-        for {
-            msg, err := reader.ReadString(byte('\n'))
-            if err != nil {
-                log.Printf("read string err : %v", err)
-                q <- true
-                break
-            }
-            log.Printf("收到了服务器给我的消息: %s", msg)
+    //    go func(conn *net.TCPConn) {
+    //        defer conn.Close()
+    //        reader := bufio.NewReader(conn)
+    //        for {
+    //            msg, err := reader.ReadString(byte('\n'))
+    //            if err != nil {
+    //                log.Printf("read string err : %v", err)
+    //                q <- true
+    //                break
+    //            }
+    //            log.Printf("收到了服务器给我的消息: %s", msg)
+    //
+    //            time.Sleep(time.Second * 5)
+    //            log.Println("五秒后")
+    //            send := "world"
+    //            if msg == "world" {
+    //                send = "hello"
+    //            }
+    //
+    //            conn.Write([]byte(send + "\n"))
+    //        }
+    //
+    //    }(conn)
 
-            time.Sleep(time.Second * 5)
-            log.Println("五秒后")
-            send := "world"
-            if msg == "world" {
-                send = "hello"
-            }
+    //    conn.Write([]byte("hello\n"))
 
-            conn.Write([]byte(send + "\n"))
+    sms := make([]byte, 128)
+    for {
+        fmt.Print("请输入要发送的内容:")
+        _, err := fmt.Scan(&sms)
+        fmt.Printf("-------sms:%v", sms)
+        if err != nil {
+            log.Printf("数据输入异常：%v", err)
         }
+        fmt.Printf("sms len:%v", len(sms))
+        conn.Write(sms)
+        buf := make([]byte, 128)
+        c, err := conn.Read(buf)
+        if err != nil {
+            log.Printf("读取服务器数据异常:%v", err)
+        }
+        log.Println(string(buf[0:c]))
+    }
 
-    }(conn)
-
-    conn.Write([]byte("hello\n"))
-
-
-    <-q
+    //    <-q
 }
 
 func TestTCPSocketService(t *testing.T) {
@@ -103,4 +121,31 @@ func settleClientConn(conn *net.TCPConn) {
 
         conn.Write([]byte(response + "\n"))
     }
+}
+
+func TestReadBuffer(t *testing.T) {
+    buf := bytes.NewBuffer([]byte("abc"))
+    o := make([]byte, 2)
+    n, err := buf.Read(o)
+    if err != nil {
+        log.Fatalf("read err : %v", err)
+    }
+
+    log.Printf("o read num : %d, value : %d", n, o)
+
+    o = make([]byte, 2)
+    n, err = buf.Read(o)
+    if err != nil {
+        log.Fatalf("read err : %v", err)
+    }
+
+    log.Printf("o read num : %d, value : %d", n, o)
+
+    o = make([]byte, 2)
+    n, err = buf.Read(o)
+    if err != nil {
+        log.Fatalf("read err : %v", err)
+    }
+
+    log.Printf("o read num : %d, value : %d", n, o)
 }
